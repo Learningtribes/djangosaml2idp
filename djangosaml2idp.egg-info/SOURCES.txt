@@ -1,0 +1,16 @@
+LICENSE.txt
+MANIFEST.in
+README.rst
+setup.cfg
+setup.py
+djangosaml2idp/__init__.py
+djangosaml2idp/processors.py
+djangosaml2idp/urls.py
+djangosaml2idp/views.py
+djangosaml2idp.egg-info/PKG-INFO
+djangosaml2idp.egg-info/SOURCES.txt
+djangosaml2idp.egg-info/dependency_links.txt
+djangosaml2idp.egg-info/not-zip-safe
+djangosaml2idp.egg-info/requires.txt
+djangosaml2idp.egg-info/top_level.txt
+djangosaml2idp/templates/djangosaml2idp/login.html
