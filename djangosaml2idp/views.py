@@ -21,6 +21,7 @@ from saml2.ident import NameID
 from saml2.metadata import entity_descriptor
 from saml2.s_utils import UnknownPrincipal, UnsupportedBinding
 from saml2.server import Server
+from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
 from six import text_type
 
 from .identity import create_identity
@@ -122,7 +123,7 @@ def login_process(request):
     try:
         authn_resp = IDP.create_authn_response(
             identity=identity, userid=request.user.username,
-            name_id=NameID(format=resp_args['name_id_policy'].format, sp_name_qualifier=destination, text=request.user.username),
+            name_id=NameID(format=NAMEID_FORMAT_UNSPECIFIED, sp_name_qualifier=destination, text="%s" % request.user.id),
             authn=AUTHN_BROKER.get_authn_by_accr(req_authn_context),
             sign_response=IDP.config.getattr("sign_response", "idp") or False,
             sign_assertion=IDP.config.getattr("sign_assertion", "idp") or False,
