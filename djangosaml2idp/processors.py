@@ -10,8 +10,13 @@ class BaseProcessor(object):
         return True
 
     def create_identity(self, user, sp_mapping):
-        return {
-            out_attr: getattr(user, user_attr)
-            for user_attr, out_attr in sp_mapping.items()
-            if hasattr(user, user_attr)
-        }
+        identity = {}
+        for user_attr, out_attr in sp_mapping.items():
+            if hasattr(user, user_attr):
+                identity[out_attr] = getattr(user, user_attr)
+            else:
+                if hasattr(user, "profile"):
+                    profile = getattr(user, "profile")
+                    if hasattr(profile, user_attr):
+                        identity[out_attr] = getattr(profile, user_attr)
+        return identity
