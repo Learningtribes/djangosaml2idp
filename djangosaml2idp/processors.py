@@ -16,7 +16,7 @@ class BaseProcessor(object):
     identity = {}
     logger.info("### create identity ###")
     logger.info(sp_mapping)
-    for user_attr, out_attr in sp_mapping.items():
+    for out_attr, user_attr in sp_mapping.items():
         if hasattr(user, user_attr):
             identity[out_attr] = getattr(user, user_attr)
         else:
