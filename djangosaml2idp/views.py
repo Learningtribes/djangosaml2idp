@@ -138,6 +138,8 @@ def login_process(request):
         destination=destination,
         relay_state=request.session['RelayState'],
         response=True)
+    logger.info("######## check SAML ##########")
+    logger.info(http_args['data'])
     return HttpResponse(http_args['data'])
 
 
