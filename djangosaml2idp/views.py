@@ -118,6 +118,9 @@ def login_process(request):
     req_authn_context = req_info.message.requested_authn_context or PASSWORD
     AUTHN_BROKER = AuthnBroker()
     AUTHN_BROKER.add(authn_context_class_ref(req_authn_context), "")
+    logger.info(identity)
+    logger.info(resp_args)
+    logger.info(req_authn_context)
 
     # Construct SamlResponse message
     try:
@@ -130,7 +133,7 @@ def login_process(request):
             **resp_args)
     except Exception as excp:
         return HttpResponseServerError(excp)
-
+    logger.info(authn_resp)
     # Return as html with self-submitting form.
     http_args = IDP.apply_binding(
         binding=binding_out,
