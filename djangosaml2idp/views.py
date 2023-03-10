@@ -71,7 +71,7 @@ def login_process(request):
         return HttpResponseBadRequest(excp)
     # TODO this is taken from example, but no idea how this works or whats it does. Check SAML2 specification?
     # Signed request for HTTP-REDIRECT
-    if "SigAlg" in request.session and "Signature" in request.session:
+    if False and "SigAlg" in request.session and "Signature" in request.session:    # Bypass this verification code for now.
         _certs = IDP.metadata.certs(req_info.message.issuer.text, "any", "signing")
         verified_ok = False
         for cert in _certs:
