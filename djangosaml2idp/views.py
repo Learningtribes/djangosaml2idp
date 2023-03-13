@@ -37,13 +37,10 @@ except AttributeError:
 
 
 def _latest_version_of_unravel(txt, binding, msgtype="response"):
-    """
-    Will unpack the received text. Depending on the context the original
-     response may have been transformed before transmission.
-    :param txt:
-    :param binding:
-    :param msgtype:
-    :return:
+    """We have upgrade method `def unravel()` of the version of Pysaml v4.9.0
+        ( https://github.com/IdentityPython/pysaml2/blob/c740a3a270037d6fcb42a12112db594705d3878f/src/saml2/entity.py#L381 )
+
+        Replace 'elif binding == BINDING_HTTP_POST:\nxmlstr = base64.b64decode(txt)' as follow
     """
     import base64
     import zlib
@@ -83,6 +80,7 @@ def _latest_version_of_unravel(txt, binding, msgtype="response"):
     return xmlstr
 
 
+# Upgrade method Entity.unravel()
 Entity.unravel = staticmethod(_latest_version_of_unravel)
 
 
