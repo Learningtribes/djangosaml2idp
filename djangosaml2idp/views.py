@@ -45,7 +45,17 @@ def _latest_version_of_unravel(txt, binding, msgtype="response"):
     :param msgtype:
     :return:
     """
-    # logger.debug("unravel '%s'", txt)
+    import base64
+    import zlib
+    from saml2 import BINDING_HTTP_ARTIFACT
+    from saml2 import BINDING_HTTP_POST
+    from saml2 import BINDING_HTTP_REDIRECT
+    from saml2 import BINDING_SOAP
+    from saml2 import BINDING_URI
+    from saml2 import soap
+    from saml2.entity import UnknownBinding
+    from saml2.s_utils import UnravelError
+    from saml2.s_utils import decode_base64_and_inflate
     if binding not in [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST,
                        BINDING_SOAP, BINDING_URI, BINDING_HTTP_ARTIFACT,
                        None]:
