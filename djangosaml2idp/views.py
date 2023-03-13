@@ -46,15 +46,10 @@ def _latest_version_of_unravel(txt, binding, msgtype="response"):
     :return:
     """
     # logger.debug("unravel '%s'", txt)
-    if binding not in [
-        BINDING_HTTP_REDIRECT,
-        BINDING_HTTP_POST,
-        BINDING_SOAP,
-        BINDING_URI,
-        BINDING_HTTP_ARTIFACT,
-        None,
-    ]:
-        raise UnknownBinding(f"Don't know how to handle '{binding}'")
+    if binding not in [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST,
+                       BINDING_SOAP, BINDING_URI, BINDING_HTTP_ARTIFACT,
+                       None]:
+        raise UnknownBinding("Don't know how to handle '%s'" % binding)
     else:
         try:
             if binding == BINDING_HTTP_REDIRECT:
@@ -65,14 +60,15 @@ def _latest_version_of_unravel(txt, binding, msgtype="response"):
                 except zlib.error:
                     xmlstr = base64.b64decode(txt)
             elif binding == BINDING_SOAP:
-                func = getattr(soap, f"parse_soap_enveloped_saml_{msgtype}")
+                func = getattr(soap,
+                               "parse_soap_enveloped_saml_%s" % msgtype)
                 xmlstr = func(txt)
             elif binding == BINDING_HTTP_ARTIFACT:
                 xmlstr = base64.b64decode(txt)
             else:
                 xmlstr = txt
         except Exception:
-            raise UnravelError(f"Unravelling binding '{binding}' failed")
+            raise UnravelError("Unravelling binding '%s' failed" % binding)
 
     return xmlstr
 
