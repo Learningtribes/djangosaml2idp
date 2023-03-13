@@ -17,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.authn_context import PASSWORD, AuthnBroker, authn_context_class_ref
 from saml2.config import IdPConfig
+from saml2.entity import Entity
 from saml2.ident import NameID
 from saml2.metadata import entity_descriptor
 from saml2.s_utils import UnknownPrincipal, UnsupportedBinding
@@ -33,6 +34,50 @@ try:
     idp_sp_config = settings.SAML_IDP_SPCONFIG
 except AttributeError:
     raise ImproperlyConfigured("SAML_IDP_SPCONFIG not defined in settings.")
+
+
+def _latest_version_of_unravel(txt, binding, msgtype="response"):
+    """
+    Will unpack the received text. Depending on the context the original
+     response may have been transformed before transmission.
+    :param txt:
+    :param binding:
+    :param msgtype:
+    :return:
+    """
+    # logger.debug("unravel '%s'", txt)
+    if binding not in [
+        BINDING_HTTP_REDIRECT,
+        BINDING_HTTP_POST,
+        BINDING_SOAP,
+        BINDING_URI,
+        BINDING_HTTP_ARTIFACT,
+        None,
+    ]:
+        raise UnknownBinding(f"Don't know how to handle '{binding}'")
+    else:
+        try:
+            if binding == BINDING_HTTP_REDIRECT:
+                xmlstr = decode_base64_and_inflate(txt)
+            elif binding == BINDING_HTTP_POST:
+                try:
+                    xmlstr = decode_base64_and_inflate(txt)
+                except zlib.error:
+                    xmlstr = base64.b64decode(txt)
+            elif binding == BINDING_SOAP:
+                func = getattr(soap, f"parse_soap_enveloped_saml_{msgtype}")
+                xmlstr = func(txt)
+            elif binding == BINDING_HTTP_ARTIFACT:
+                xmlstr = base64.b64decode(txt)
+            else:
+                xmlstr = txt
+        except Exception:
+            raise UnravelError(f"Unravelling binding '{binding}' failed")
+
+    return xmlstr
+
+
+Entity.unravel = staticmethod(_latest_version_of_unravel)
 
 
 @csrf_exempt
