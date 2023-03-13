@@ -16,7 +16,10 @@ class BaseProcessor(object):
     identity = {}
     for out_attr, user_attr in sp_mapping.items():
         if hasattr(user, user_attr):
-            identity[out_attr] = getattr(user, user_attr)
+            # As Modal.User.id (`Long` type) cannot be located in
+            # mapping method ( https://github.com/IdentityPython/pysaml2/blob/2d47437a21aaaa77abed1b1aacdf5bda5a7f7b87/src/saml2/saml.py#L234 )
+            # So here, we have to convert it into python type `integer`.
+            identity[out_attr] = int(getattr(user, user_attr)) if 'id' == user_attr else getattr(user, user_attr)
         else:
             if hasattr(user, "profile"):
                 profile = getattr(user, "profile")
