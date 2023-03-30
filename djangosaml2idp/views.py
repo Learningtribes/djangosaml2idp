@@ -181,7 +181,7 @@ def login_process(request):
     try:
         authn_resp = IDP.create_authn_response(
             identity=identity, userid=request.user.username,
-            name_id=NameID(format=NAMEID_FORMAT_UNSPECIFIED, sp_name_qualifier=destination, text="%s".format(_fetch_name_id_by_settings())),
+            name_id=NameID(format=NAMEID_FORMAT_UNSPECIFIED, sp_name_qualifier=destination, text="{}".format(_fetch_name_id_by_settings())),
             authn=AUTHN_BROKER.get_authn_by_accr(req_authn_context),
             sign_response=IDP.config.getattr("sign_response", "idp") or False,
             sign_assertion=IDP.config.getattr("sign_assertion", "idp") or False,
