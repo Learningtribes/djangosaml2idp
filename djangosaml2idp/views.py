@@ -168,11 +168,20 @@ def login_process(request):
     AUTHN_BROKER = AuthnBroker()
     AUTHN_BROKER.add(authn_context_class_ref(req_authn_context), "")
 
+    def _fetch_name_id_by_settings():
+        specified_name_id_field = sp_config.get('name_id_field', None)
+        if specified_name_id_field:
+            if 'request.user.username' == specified_name_id_field:
+                return request.user.username
+
+        return request.user.id
+
+
     # Construct SamlResponse message
     try:
         authn_resp = IDP.create_authn_response(
             identity=identity, userid=request.user.username,
-            name_id=NameID(format=NAMEID_FORMAT_UNSPECIFIED, sp_name_qualifier=destination, text="%s" % request.user.id),
+            name_id=NameID(format=NAMEID_FORMAT_UNSPECIFIED, sp_name_qualifier=destination, text="%s".format(_fetch_name_id_by_settings())),
             authn=AUTHN_BROKER.get_authn_by_accr(req_authn_context),
             sign_response=IDP.config.getattr("sign_response", "idp") or False,
             sign_assertion=IDP.config.getattr("sign_assertion", "idp") or False,
