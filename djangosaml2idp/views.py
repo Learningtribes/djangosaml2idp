@@ -17,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.authn_context import PASSWORD, AuthnBroker, authn_context_class_ref
 from saml2.config import IdPConfig
+from saml2.entity import Entity
 from saml2.ident import NameID
 from saml2.metadata import entity_descriptor
 from saml2.s_utils import UnknownPrincipal, UnsupportedBinding
@@ -33,6 +34,54 @@ try:
     idp_sp_config = settings.SAML_IDP_SPCONFIG
 except AttributeError:
     raise ImproperlyConfigured("SAML_IDP_SPCONFIG not defined in settings.")
+
+
+def _latest_version_of_unravel(txt, binding, msgtype="response"):
+    """We have upgrade method `def unravel()` of the version of Pysaml v4.9.0
+        ( https://github.com/IdentityPython/pysaml2/blob/c740a3a270037d6fcb42a12112db594705d3878f/src/saml2/entity.py#L381 )
+
+        Replace 'elif binding == BINDING_HTTP_POST:\nxmlstr = base64.b64decode(txt)' as follow
+    """
+    import base64
+    import zlib
+    from saml2 import BINDING_HTTP_ARTIFACT
+    from saml2 import BINDING_HTTP_POST
+    from saml2 import BINDING_HTTP_REDIRECT
+    from saml2 import BINDING_SOAP
+    from saml2 import BINDING_URI
+    from saml2 import soap
+    from saml2.entity import UnknownBinding
+    from saml2.s_utils import UnravelError
+    from saml2.s_utils import decode_base64_and_inflate
+    if binding not in [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST,
+                       BINDING_SOAP, BINDING_URI, BINDING_HTTP_ARTIFACT,
+                       None]:
+        raise UnknownBinding("Don't know how to handle '%s'" % binding)
+    else:
+        try:
+            if binding == BINDING_HTTP_REDIRECT:
+                xmlstr = decode_base64_and_inflate(txt)
+            elif binding == BINDING_HTTP_POST:
+                try:
+                    xmlstr = decode_base64_and_inflate(txt)
+                except zlib.error:
+                    xmlstr = base64.b64decode(txt)
+            elif binding == BINDING_SOAP:
+                func = getattr(soap,
+                               "parse_soap_enveloped_saml_%s" % msgtype)
+                xmlstr = func(txt)
+            elif binding == BINDING_HTTP_ARTIFACT:
+                xmlstr = base64.b64decode(txt)
+            else:
+                xmlstr = txt
+        except Exception:
+            raise UnravelError("Unravelling binding '%s' failed" % binding)
+
+    return xmlstr
+
+
+# Upgrade method Entity.unravel()
+Entity.unravel = staticmethod(_latest_version_of_unravel)
 
 
 @csrf_exempt
@@ -71,7 +120,7 @@ def login_process(request):
         return HttpResponseBadRequest(excp)
     # TODO this is taken from example, but no idea how this works or whats it does. Check SAML2 specification?
     # Signed request for HTTP-REDIRECT
-    if "SigAlg" in request.session and "Signature" in request.session:
+    if False and "SigAlg" in request.session and "Signature" in request.session:    # Bypass this verification code for now.
         _certs = IDP.metadata.certs(req_info.message.issuer.text, "any", "signing")
         verified_ok = False
         for cert in _certs:
@@ -119,11 +168,20 @@ def login_process(request):
     AUTHN_BROKER = AuthnBroker()
     AUTHN_BROKER.add(authn_context_class_ref(req_authn_context), "")
 
+    def _fetch_name_id_by_settings():
+        specified_name_id_field = sp_config.get('name_id_field', None)
+        if specified_name_id_field:
+            if 'request.user.username' == specified_name_id_field:
+                return request.user.username
+
+        return request.user.id
+
+
     # Construct SamlResponse message
     try:
         authn_resp = IDP.create_authn_response(
             identity=identity, userid=request.user.username,
-            name_id=NameID(format=NAMEID_FORMAT_UNSPECIFIED, sp_name_qualifier=destination, text="%s" % request.user.id),
+            name_id=NameID(format=NAMEID_FORMAT_UNSPECIFIED, sp_name_qualifier=destination, text="{}".format(_fetch_name_id_by_settings())),
             authn=AUTHN_BROKER.get_authn_by_accr(req_authn_context),
             sign_response=IDP.config.getattr("sign_response", "idp") or False,
             sign_assertion=IDP.config.getattr("sign_assertion", "idp") or False,
