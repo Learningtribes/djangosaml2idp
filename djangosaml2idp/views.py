@@ -8,7 +8,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import resolve, reverse
 from django.http import (HttpResponse, HttpResponseBadRequest,
                          HttpResponseRedirect, HttpResponseServerError)
 from django.utils.datastructures import MultiValueDictKeyError
@@ -94,6 +94,13 @@ def sso_entry(request):
         request.session['SAMLRequest'] = passed_data['SAMLRequest']
     except (KeyError, MultiValueDictKeyError) as e:
         return HttpResponseBadRequest(e)
+    # pysaml2 compares AuthnRequest Destination to config endpoints for this
+    # binding only; must match how the SP sent the request (redirect vs post).
+    url_name = resolve(request.path_info).url_name
+    if url_name == 'saml_login_redirect':
+        request.session['SAMLBinding'] = BINDING_HTTP_REDIRECT
+    else:
+        request.session['SAMLBinding'] = BINDING_HTTP_POST
     request.session['RelayState'] = passed_data.get('RelayState', '')
     # TODO check how the redirect saml way works. Taken from example idp in pysaml2.
     if "SigAlg" in passed_data and "Signature" in passed_data:
@@ -113,9 +120,10 @@ def login_process(request):
     conf = IdPConfig()
     conf.load(copy.deepcopy(settings.SAML_IDP_CONFIG))
     IDP = Server(config=conf)
-    # Parse incoming request
+    # Parse incoming request (binding must match SP transport and Destination)
+    binding_in = request.session.get('SAMLBinding', BINDING_HTTP_POST)
     try:
-        req_info = IDP.parse_authn_request(request.session['SAMLRequest'], BINDING_HTTP_POST)
+        req_info = IDP.parse_authn_request(request.session['SAMLRequest'], binding_in)
     except Exception as excp:
         return HttpResponseBadRequest(excp)
     # TODO this is taken from example, but no idea how this works or whats it does. Check SAML2 specification?
